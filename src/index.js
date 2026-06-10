@@ -8,6 +8,7 @@ const errorHandler = require('./middleware/errorHandler');
 
 // Route modules
 const customersRouter = require('./routes/customers');
+const campaignRoutes = require('./routes/campaigns');
 
 // ─────────────────────────────────────────
 const app  = express();
@@ -31,6 +32,7 @@ app.get('/health', (_req, res) => {
 // API routes — Phase 1
 // ─────────────────────────────────────────
 app.use('/customers', customersRouter);
+app.use('/campaigns', campaignRoutes);
 
 // ─────────────────────────────────────────
 // 404 catch-all
