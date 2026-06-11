@@ -13,6 +13,8 @@
 'use strict';
 
 const pool = require('../db/connection');
+const { runSimulation } = require('../services/simulationService');
+const { getAudienceIds } = require('../services/segmentService');
 
 // ─── ID Generator ─────────────────────────────────────────────────────────────
 // campaigns.id is VARCHAR(20) — not auto-increment.
@@ -387,11 +389,45 @@ const updateCampaignStatus = async (req, res, next) => {
       `UPDATE campaigns SET status = ? ${setSentAt} WHERE id = ?`,
       [status, id]
     );
+// Trigger communication simulation when campaign becomes active
+if (status === 'active') {
+  const [[campaign]] = await pool.query(
+    `SELECT c.*, s.filters
+     FROM campaigns c
+     JOIN segments s ON s.id = c.segment_id
+     WHERE c.id = ?`,
+    [id]
+  );
+
+  const filters = typeof campaign.filters === 'string'
+    ? JSON.parse(campaign.filters)
+    : campaign.filters;
+
+  const customerIds = await getAudienceIds(filters);
+
+  const content =
+    typeof campaign.content === 'string'
+      ? JSON.parse(campaign.content)
+      : campaign.content;
+
+  const messageText = content?.message || 'Campaign Message';
+
+  const result = await runSimulation(
+    campaign.id,
+    customerIds,
+    campaign.channel,
+    messageText
+  );
+
+  console.log(
+    `[simulation] Campaign ${campaign.id}: ${result.inserted} communications created`
+  );
+}
 
     const [[updated]] = await pool.query(
-      'SELECT id, name, status, sent_at, updated_at FROM campaigns WHERE id = ?',
-      [id]
-    );
+    'SELECT * FROM campaigns WHERE id = ?',
+   [id]
+  );
 
     return res.json({
       message: `Campaign status updated to '${status}'`,
