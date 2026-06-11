@@ -10,6 +10,7 @@ const errorHandler = require('./middleware/errorHandler');
 const customersRouter = require('./routes/customers');
 const campaignRoutes = require('./routes/campaigns');
 const segmentRoutes = require('./routes/segments');
+const analyticsRoutes = require('./routes/analytics');
 
 // ─────────────────────────────────────────
 const app  = express();
@@ -35,6 +36,7 @@ app.get('/health', (_req, res) => {
 app.use('/customers', customersRouter);
 app.use('/campaigns', campaignRoutes);
 app.use('/segments', segmentRoutes);
+app.use('/analytics', analyticsRoutes);
 
 // ─────────────────────────────────────────
 // 404 catch-all
