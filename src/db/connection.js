@@ -1,3 +1,8 @@
+console.log("DB ENV:", {
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  db: process.env.DB_NAME,
+});
 const mysql = require('mysql2/promise');
 
 const pool = mysql.createPool({
