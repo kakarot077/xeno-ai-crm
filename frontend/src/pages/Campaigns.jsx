@@ -93,7 +93,7 @@ export default function Campaigns() {
     if (!window.confirm('Send this campaign to its audience?')) return;
     setSending(id);
     try {
-      await campaignsApi.send(id);
+      await campaignsApi.updateStatus(id, 'active');
       load();
     } catch (e) {
       alert(e.message);

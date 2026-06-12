@@ -147,13 +147,15 @@ async function runSimulation(campaignId, customerIds, channel, messageText) {
   // FIX #6: Derive exact inserted ID range from insertId + affectedRows
   // This is safe because MySQL auto_increment IDs are contiguous within
   // a single INSERT statement — no other insert can interleave mid-statement.
-  const firstId = result.insertId;
-  const lastId  = result.insertId + result.affectedRows - 1;
-
-  const [rows] = await pool.query(
-    `SELECT id FROM communications WHERE id BETWEEN ? AND ? ORDER BY id ASC`,
-    [firstId, lastId]
-  );
+const [rows] = await pool.query(
+  `SELECT id
+   FROM communications
+   WHERE campaign_id = ?
+     AND channel = ?
+   ORDER BY updated_at DESC
+   LIMIT ?`,
+  [campaignId, channel, customerIds.length]
+);
 
   // Stagger simulation start by 50ms per customer to avoid write spikes
   rows.forEach((row, i) => {
