@@ -12,5 +12,13 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME,
   port: process.env.DB_PORT || 3306,
 });
+pool.getConnection()
+  .then(conn => {
+    console.log('[DB] MySQL pool connected successfully');
+    conn.release();
+  })
+  .catch(err => {
+    console.error('[DB] Failed to connect:', err.message);
+  });
 
 module.exports = pool;
