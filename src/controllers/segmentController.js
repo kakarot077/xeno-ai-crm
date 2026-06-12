@@ -22,10 +22,18 @@ const listSegments = async (req, res, next) => {
        ORDER BY created_at DESC`
     );
 
-    const result = segments.map(s => ({
-      ...s,
-      filters: parseFilters(s.filters),
-    }));
+    const result = await Promise.all(
+      segments.map(async (s) => {
+        const filters = parseFilters(s.filters);
+        const count = await getAudienceCount(filters);
+
+        return {
+          ...s,
+          filters,
+          count,
+        };
+      })
+    );
 
     res.json({ segments: result });
   } catch (err) {

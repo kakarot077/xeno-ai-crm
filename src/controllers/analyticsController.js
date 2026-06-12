@@ -85,47 +85,46 @@ const getCampaignStats = async (req, res, next) => {
 };
 
 // ── GET /analytics/summary ────────────────────────────────────
+// ── GET /analytics/summary ────────────────────────────────────
 const getSummary = async (req, res, next) => {
   try {
     const [[totals]] = await pool.query(
       `SELECT
-         COUNT(DISTINCT campaign_id)                                      AS total_campaigns,
+         COUNT(DISTINCT campaign_id)                                        AS total_campaigns,
          SUM(status IN ('sent','delivered','opened','clicked','converted')) AS total_sent,
          SUM(status IN ('delivered','opened','clicked','converted'))        AS total_delivered,
-         SUM(status = 'converted')                                        AS total_converted,
-         COALESCE(SUM(revenue), 0)                                        AS total_revenue
+         SUM(status IN ('opened','clicked','converted'))                    AS total_opened,
+         SUM(status IN ('clicked','converted'))                             AS total_clicked,
+         SUM(status = 'converted')                                          AS total_converted,
+         COALESCE(SUM(revenue), 0)                                          AS total_revenue
        FROM communications`
     );
 
     const [byChannel] = await pool.query(
       `SELECT
          channel,
-         COUNT(*)                                                         AS sent,
-         SUM(status IN ('delivered','opened','clicked','converted'))        AS delivered,
-         SUM(status IN ('opened','clicked','converted'))                    AS read_count,
-         SUM(status = 'converted')                                        AS converted,
-         COALESCE(SUM(revenue), 0)                                        AS revenue
+         COUNT(*) AS sent,
+         SUM(status IN ('delivered','opened','clicked','converted')) AS delivered,
+         SUM(status IN ('opened','clicked','converted')) AS read_count,
+         SUM(status = 'converted') AS converted,
+         COALESCE(SUM(revenue), 0) AS revenue
        FROM communications
        GROUP BY channel`
     );
 
     const [daily] = await pool.query(
       `SELECT
-         DATE(updated_at)                                                  AS date,
-         SUM(status IN ('sent','delivered','opened','clicked','converted'))  AS sent,
-         SUM(status IN ('delivered','opened','clicked','converted'))         AS delivered,
-         SUM(status IN ('opened','clicked','converted'))                     AS read_count,
-         SUM(status = 'converted')                                         AS converted
+         DATE(updated_at) AS date,
+         SUM(status IN ('sent','delivered','opened','clicked','converted')) AS sent,
+         SUM(status IN ('delivered','opened','clicked','converted')) AS delivered,
+         SUM(status IN ('opened','clicked','converted')) AS read_count,
+         SUM(status = 'converted') AS converted
        FROM communications
        WHERE updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
        GROUP BY DATE(updated_at)
        ORDER BY date ASC`
     );
 
-    // FIX #1: Added c.name, c.channel, c.status to GROUP BY.
-    // MySQL 8.0 ONLY_FULL_GROUP_BY (default) requires all non-aggregated
-    // SELECT columns to appear in GROUP BY. Previously only GROUP BY c.id,
-    // which caused: ERROR 1055 — column not in GROUP BY clause.
     const [topCampaigns] = await pool.query(
       `SELECT
          c.id,
@@ -133,7 +132,7 @@ const getSummary = async (req, res, next) => {
          c.channel,
          c.status,
          COALESCE(SUM(cm.revenue), 0) AS revenue,
-         COUNT(cm.id)                 AS messages_sent,
+         COUNT(cm.id) AS messages_sent,
          SUM(cm.status = 'converted') AS conversions
        FROM campaigns c
        LEFT JOIN communications cm ON cm.campaign_id = c.id
@@ -144,14 +143,16 @@ const getSummary = async (req, res, next) => {
 
     res.json({
       totals: {
-        campaigns: Number(totals.total_campaigns)  || 0,
-        sent:      Number(totals.total_sent)        || 0,
-        delivered: Number(totals.total_delivered)   || 0,
-        converted: Number(totals.total_converted)   || 0,
-        revenue:   parseFloat(totals.total_revenue) || 0,
+        campaigns: Number(totals.total_campaigns) || 0,
+        sent: Number(totals.total_sent) || 0,
+        delivered: Number(totals.total_delivered) || 0,
+        opened: Number(totals.total_opened) || 0,
+        clicked: Number(totals.total_clicked) || 0,
+        converted: Number(totals.total_converted) || 0,
+        revenue: parseFloat(totals.total_revenue) || 0,
       },
-      by_channel:    byChannel,
-      daily_trend:   daily,
+      by_channel: byChannel,
+      daily_trend: daily,
       top_campaigns: topCampaigns,
     });
   } catch (err) {
