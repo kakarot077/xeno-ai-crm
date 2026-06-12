@@ -161,7 +161,7 @@ export default function Campaigns() {
               <tbody className="divide-y divide-gray-100">
                 {campaigns.map((c) => {
                   const st    = statusStyle(c.status);
-                  const stats = c.stats || {};
+                  const stats = c.stats || c;
                   const sent  = stats.sent || c.audience_count || 0;
                   const delRate = sent > 0 ? formatRate((stats.delivered / sent) * 100) : '—';
                   const convRate = sent > 0 ? formatRate((stats.converted / sent) * 100) : '—';
