@@ -11,6 +11,7 @@ const customersRouter = require('./routes/customers');
 const campaignRoutes = require('./routes/campaigns');
 const segmentRoutes = require('./routes/segments');
 const analyticsRoutes = require('./routes/analytics');
+const aiRoutes = require('./routes/ai');
 
 // ─────────────────────────────────────────
 const app  = express();
@@ -37,6 +38,7 @@ app.use('/customers', customersRouter);
 app.use('/campaigns', campaignRoutes);
 app.use('/segments', segmentRoutes);
 app.use('/analytics', analyticsRoutes);
+app.use('/ai', aiRoutes);
 
 // ─────────────────────────────────────────
 // 404 catch-all

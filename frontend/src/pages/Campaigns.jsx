@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { campaignsApi, segmentsApi } from '../api/client';
+import { campaignsApi, segmentsApi, aiApi } from '../api/client';
 import { formatCurrency, formatRate, formatDate, statusStyle, channelColor } from '../utils/formatters';
 
 function Modal({ open, onClose, children }) {
@@ -66,7 +66,32 @@ export default function Campaigns() {
   function handleChannelChange(ch) {
     setForm(prev => ({ ...prev, channel: ch, content: { [ch.toLowerCase()]: { message: '', cta: 'Shop Now' } } }));
   }
+ async function handleGenerateMessage() {
+  try {
+    const segmentName =
+      segments.find(s => s.id === form.segment_id)?.name || 'customers';
 
+    const res = await aiApi.generateMessage(
+      form.goal,
+      segmentName
+    );
+
+    const ch = form.channel.toLowerCase();
+
+    setForm(prev => ({
+      ...prev,
+      content: {
+        ...prev.content,
+        [ch]: {
+          ...prev.content[ch],
+          message: res.message,
+        },
+      },
+    }));
+  } catch (e) {
+    alert(e.message);
+  }
+}
   async function handleCreate() {
     setFormError(null);
     if (!form.name.trim())      { setFormError('Campaign name is required.'); return; }
@@ -253,7 +278,19 @@ export default function Campaigns() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Message *</label>
+              <div className="mb-1 flex items-center justify-between">
+                <label className="block text-xs font-semibold text-gray-600">
+                Message *
+                </label>
+
+                 <button
+                 type="button"
+                   onClick={handleGenerateMessage}
+                  className="rounded-md bg-purple-600 px-2 py-1 text-xs font-semibold text-white hover:bg-purple-700"
+  >
+                 ✨ Generate AI Message
+                  </button>
+                </div>
               <textarea
                 rows={3}
                 value={form.content[form.channel.toLowerCase()]?.message || ''}
