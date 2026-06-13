@@ -39,6 +39,9 @@ export default function Campaigns() {
   });
   const [creating, setCreating]   = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+  const [campaignPrompt, setCampaignPrompt] = useState('');
+  const [assistantLoading, setAssistantLoading] = useState(false);
+  const [assistantPreview, setAssistantPreview] = useState(null);
   const [formError, setFormError] = useState(null);
 
   const load = () => {
@@ -53,10 +56,70 @@ export default function Campaigns() {
   };
 
   useEffect(() => { load(); }, []);
+  
+  async function handleCampaignAssistant() {
+    if (assistantLoading) return;
+    if (!campaignPrompt.trim()) { setFormError('Describe your campaign first.'); return; }
+    setFormError(null);
+    setAssistantLoading(true);
+    setAssistantPreview(null);
+    try {
+      const res = await aiApi.generateCampaign(campaignPrompt);
+      setAssistantPreview(res);
+    } catch (e) {
+      if (e.message.includes('429')) {
+        setFormError('AI is rate-limited right now — wait ~60 seconds and try again.');
+      } else {
+        setFormError(e.message);
+      }
+    } finally {
+      setAssistantLoading(false);
+    }
+  }
+
+  async function handleApplyAssistant() {
+    if (!assistantPreview) return;
+    setFormError(null);
+    setSaving(true);
+    try {
+      // Step 1: create the segment from AI's filters
+      const segRes = await segmentsApi.create({
+        name: assistantPreview.segment.name,
+        explanation: assistantPreview.segment.explanation,
+        filters: assistantPreview.segment.filters,
+        color: '#9333ea',
+      });
+      const newSegment = segRes.segment || segRes;
+
+      // Step 2: populate the campaign form with AI's output
+      const ch = assistantPreview.channel.toLowerCase();
+      setForm({
+        name: assistantPreview.segment.name + ' Campaign',
+        segment_id: newSegment.id,
+        channel: assistantPreview.channel,
+        goal: assistantPreview.goal,
+        content: { [ch]: { message: assistantPreview.message, cta: 'Shop Now' } },
+      });
+
+      // Step 3: refresh segments list so the new one appears in dropdown
+      const segData = await segmentsApi.getAll();
+      setSegments(segData.segments || []);
+
+      // Clear assistant state — form is now ready for review/edit
+      setCampaignPrompt('');
+      setAssistantPreview(null);
+    } catch (e) {
+      setFormError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   function resetForm() {
     setForm({ name: '', segment_id: '', channel: 'WhatsApp', goal: '', content: { whatsapp: { message: '', cta: 'Shop Now' } } });
     setFormError(null);
+    setCampaignPrompt('');
+    setAssistantPreview(null);
   }
 
   function setMessage(val) {
@@ -242,6 +305,69 @@ export default function Campaigns() {
       <Modal open={showCreate} onClose={() => setShowCreate(false)}>
         <div className="p-6">
           <h2 className="text-lg font-bold text-gray-900 mb-4">Create Campaign</h2>
+          {/* AI Campaign Assistant */}
+          <div className="mb-4 rounded-lg border border-purple-200 bg-purple-50 p-4">
+            <label className="block text-xs font-semibold text-purple-700 mb-1.5">
+              🧠 AI Campaign Assistant — describe the whole campaign
+            </label>
+            <div className="flex gap-2">
+              <input
+                value={campaignPrompt}
+                onChange={e => setCampaignPrompt(e.target.value)}
+                placeholder="e.g. run campaign for inactive users with 20% discount"
+                className="flex-1 rounded-lg border border-purple-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={handleCampaignAssistant}
+                disabled={assistantLoading}
+                className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-50 whitespace-nowrap"
+              >
+                {assistantLoading ? 'Thinking…' : 'Generate Campaign'}
+              </button>
+            </div>
+
+            {assistantPreview && (
+              <div className="mt-3 rounded-lg bg-white border border-purple-200 p-3 space-y-2">
+                <div>
+                  <p className="text-xs font-semibold text-gray-500">Audience</p>
+                  <p className="text-sm text-gray-800">
+                    {assistantPreview.segment.name}
+                    <span className="ml-2 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700">
+                      {assistantPreview.segment.audience_count} customers
+                    </span>
+                  </p>
+                  <p className="text-xs text-gray-400">{assistantPreview.segment.explanation}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500">Channel</p>
+                  <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${channelColor(assistantPreview.channel)}`}>
+                    {assistantPreview.channel}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500">Message</p>
+                  <p className="text-sm text-gray-800">{assistantPreview.message}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500">Goal</p>
+                  <p className="text-sm text-gray-800">{assistantPreview.goal}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleApplyAssistant}
+                  disabled={saving}
+                  className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {saving ? 'Applying…' : 'Use This Campaign — Fill Form Below'}
+                </button>
+              </div>
+            )}
+
+            <p className="mt-1.5 text-xs text-purple-500">
+              AI will create the audience segment and pre-fill everything below for your review.
+            </p>
+          </div>
 
           {formError && (
             <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-2.5 text-sm text-red-700">{formError}</div>

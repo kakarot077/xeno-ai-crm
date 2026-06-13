@@ -52,6 +52,10 @@ export const analyticsApi = {
     client.post('/ai/generate-segment', {
       description,
     }),
+  generateCampaign: (prompt) =>
+    client.post('/ai/generate-campaign', {
+      prompt,
+    }),
 };
 
 export default client;
