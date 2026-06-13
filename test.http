@@ -1,0 +1,8 @@
+POST http://localhost:4000/ai/generate-message
+Content-Type: application/json
+
+{
+  "goal": "increase repeat purchases",
+  "audience": "VIP Customers",
+  "channel": "SMS"
+}
