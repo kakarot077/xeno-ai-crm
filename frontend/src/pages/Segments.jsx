@@ -237,7 +237,7 @@ export default function Segments() {
               <input
                 value={aiDescription}
                 onChange={e => setAiDescription(e.target.value)}
-                placeholder='e.g. "Customers who bought shoes but haven't purchased in 30 days"'
+                placeholder='e.g. "Customers who bought shoes but havent purchased in 30 days"'
                 className="flex-1 rounded-lg border border-purple-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
               />
               <button
