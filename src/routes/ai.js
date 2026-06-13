@@ -1,33 +1,40 @@
-const express = require("express");
+'use strict';
+
+const express = require('express');
 const router = express.Router();
-const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-router.post("/generate-message", async (req, res) => {
+router.post('/generate-message', async (req, res) => {
   try {
-    const { audience, goal } = req.body;
+    const { goal, segmentName } = req.body;
 
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
-    });
+    const cleanGoal = (goal || '').toLowerCase();
 
-    const prompt = `
-You are a marketing expert for a D2C brand.
+    const intros = {
+      repeat: "We’d love to see you again!",
+      inactive: "It’s been a while — we miss you!",
+      vip: "Exclusive VIP access just for you!",
+      default: "Special offer just for you!",
+    };
 
-Write a short, high-conversion CRM message.
+    let toneKey = 'default';
 
-Audience: ${audience}
-Goal: ${goal}
+    if (cleanGoal.includes('repeat')) toneKey = 'repeat';
+    else if (cleanGoal.includes('inactive')) toneKey = 'inactive';
+    else if (cleanGoal.includes('vip')) toneKey = 'vip';
 
-Return ONLY the message.
-`;
+    const intro = intros[toneKey];
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const templates = [
+      `Hi ${segmentName}! ${intro} Enjoy a limited-time reward curated just for you.`,
+      `Hello ${segmentName}, ${intro} Grab your exclusive offer before it expires.`,
+      `Hey ${segmentName}! ${intro} Unlock your special deal today.`,
+      `${intro} Hey ${segmentName}, don’t miss your personalized offer waiting inside.`,
+    ];
 
-    res.json({ message: text });
+    const message = templates[Math.floor(Math.random() * templates.length)];
+
+    res.json({ message });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
