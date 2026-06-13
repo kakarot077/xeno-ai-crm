@@ -56,7 +56,7 @@ router.post('/generate-segment', async (req, res, next) => {
       return res.status(400).json({ error: 'Missing required field: description' });
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const prompt = `You are a CRM segmentation engine. Convert the marketer's natural-language
 audience description into structured filter rules.
