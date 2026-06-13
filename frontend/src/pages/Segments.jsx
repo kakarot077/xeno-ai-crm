@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { segmentsApi } from '../api/client';
+import { segmentsApi, aiApi } from '../api/client';
 import { formatDate } from '../utils/formatters';
 
 const OPERATOR_LABELS = { gt: '>', lt: '<', gte: '≥', lte: '≤', eq: '=', contains: 'contains', in: 'in' };
@@ -76,6 +76,8 @@ export default function Segments() {
   const [previewing, setPreviewing] = useState(false);
   const [saving, setSaving]         = useState(false);
   const [formError, setFormError]   = useState(null);
+  const [aiDescription, setAiDescription] = useState('');
+  const [aiLoading, setAiLoading]         = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -87,11 +89,33 @@ export default function Segments() {
 
   useEffect(() => { load(); }, []);
 
+  async function handleAIGenerate() {
+    if (aiLoading) return;
+    if (!aiDescription.trim()) { setFormError('Describe your audience first.'); return; }
+    setFormError(null);
+    setAiLoading(true);
+    try {
+      const res = await aiApi.generateSegment(aiDescription);
+      setName(res.name || '');
+      setExplanation(res.explanation || aiDescription);
+      setFilters(res.filters && res.filters.length ? res.filters : [emptyFilter()]);
+      setPreview(null);
+    } catch (e) {
+      if (e.message.includes('429')) {
+        setFormError('AI is rate-limited right now — wait ~60 seconds and try again.');
+      } else {
+        setFormError(e.message);
+      }
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
   function resetForm() {
     setName(''); setExplanation(''); setColor('#6366f1');
     setFilters([emptyFilter()]); setPreview(null); setFormError(null);
+    setAiDescription('');
   }
-
   function updateFilter(i, key, val) {
     setFilters(prev => prev.map((f, idx) => idx === i ? { ...f, [key]: val } : f));
   }
@@ -204,6 +228,31 @@ export default function Segments() {
               {formError}
             </div>
           )}
+          {/* AI Segment Builder */}
+          <div className="mb-4 rounded-lg border border-purple-200 bg-purple-50 p-4">
+            <label className="block text-xs font-semibold text-purple-700 mb-1.5">
+              ✨ Describe your audience in plain English
+            </label>
+            <div className="flex gap-2">
+              <input
+                value={aiDescription}
+                onChange={e => setAiDescription(e.target.value)}
+                placeholder='e.g. "Customers who bought shoes but haven't purchased in 30 days"'
+                className="flex-1 rounded-lg border border-purple-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={handleAIGenerate}
+                disabled={aiLoading}
+                className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-50 whitespace-nowrap"
+              >
+                {aiLoading ? 'Thinking…' : 'Generate'}
+              </button>
+            </div>
+            <p className="mt-1.5 text-xs text-purple-500">
+              AI will fill in the name, description, and filters below.
+            </p>
+          </div>
 
           {/* Name + Color */}
           <div className="mb-4 flex gap-3">

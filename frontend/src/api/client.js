@@ -42,12 +42,16 @@ export const analyticsApi = {
   getCampaignStats: (id) => client.get(`/analytics/campaigns/${id}/stats`),
 };
 
-export const aiApi = {
+ export const aiApi = {
   generateMessage: (goal, segmentName) =>
     client.post('/ai/generate-message', {
       goal,
       segmentName,
     }),
-}; 
+  generateSegment: (description) =>
+    client.post('/ai/generate-segment', {
+      description,
+    }),
+};
 
 export default client;
