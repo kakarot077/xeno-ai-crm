@@ -17,7 +17,7 @@ router.post('/generate-message', async (req, res, next) => {
       });
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const prompt = `You are a D2C CRM expert. Write a short, personalized, high-conversion message.
 Channel: ${channel || 'SMS'}
