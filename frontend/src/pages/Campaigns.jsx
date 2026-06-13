@@ -38,6 +38,7 @@ export default function Campaigns() {
     content: { whatsapp: { message: '', cta: 'Shop Now' } },
   });
   const [creating, setCreating]   = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
   const [formError, setFormError] = useState(null);
 
   const load = () => {
@@ -67,31 +68,33 @@ export default function Campaigns() {
     setForm(prev => ({ ...prev, channel: ch, content: { [ch.toLowerCase()]: { message: '', cta: 'Shop Now' } } }));
   }
  async function handleGenerateMessage() {
-  try {
-    const segmentName =
-      segments.find(s => s.id === form.segment_id)?.name || 'customers';
+    if (aiLoading) return;
+    if (!form.goal.trim()) { alert('Please enter a campaign goal first.'); return; }
+    setAiLoading(true);
+    try {
+      const segmentName =
+        segments.find(s => s.id === form.segment_id)?.name || 'customers';
 
-    const res = await aiApi.generateMessage(
-      form.goal,
-      segmentName
-    );
+      const res = await aiApi.generateMessage(form.goal, segmentName);
 
-    const ch = form.channel.toLowerCase();
-
-    setForm(prev => ({
-      ...prev,
-      content: {
-        ...prev.content,
-        [ch]: {
-          ...prev.content[ch],
-          message: res.message,
+      const ch = form.channel.toLowerCase();
+      setForm(prev => ({
+        ...prev,
+        content: {
+          ...prev.content,
+          [ch]: { ...prev.content[ch], message: res.message },
         },
-      },
-    }));
-  } catch (e) {
-    alert(e.message);
+      }));
+    } catch (e) {
+      if (e.message.includes('429')) {
+        alert('AI is rate-limited right now — wait ~60 seconds and try again.');
+      } else {
+        alert(e.message);
+      }
+    } finally {
+      setAiLoading(false);
+    }
   }
-}
   async function handleCreate() {
     setFormError(null);
     if (!form.name.trim())      { setFormError('Campaign name is required.'); return; }
@@ -284,12 +287,13 @@ export default function Campaigns() {
                 </label>
 
                  <button
-                 type="button"
-                   onClick={handleGenerateMessage}
-                  className="rounded-md bg-purple-600 px-2 py-1 text-xs font-semibold text-white hover:bg-purple-700"
-  >
-                 ✨ Generate AI Message
-                  </button>
+                  type="button"
+                  onClick={handleGenerateMessage}
+                  disabled={aiLoading}
+                  className="rounded-md bg-purple-600 px-2 py-1 text-xs font-semibold text-white hover:bg-purple-700 disabled:opacity-50"
+                >
+                  {aiLoading ? 'Generating…' : '✨ Generate AI Message'}
+                </button>
                 </div>
               <textarea
                 rows={3}
