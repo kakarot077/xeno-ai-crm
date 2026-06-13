@@ -8,12 +8,15 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 router.post('/generate-message', async (req, res, next) => {
   try {
-    const { goal, audience, channel } = req.body;
+    // FIX: frontend sends `segmentName`, not `audience`.
+    // Accept both so either naming works.
+    const { goal, segmentName, audience, channel } = req.body;
+    const targetAudience = audience || segmentName;
 
     // Validate required fields
-    if (!goal || !audience) {
-      return res.status(400).json({ 
-        error: 'Missing required fields: goal, audience' 
+    if (!goal || !targetAudience) {
+      return res.status(400).json({
+        error: 'Missing required fields: goal, segmentName'
       });
     }
 
@@ -22,7 +25,7 @@ router.post('/generate-message', async (req, res, next) => {
     const prompt = `You are a D2C CRM expert. Write a short, personalized, high-conversion message.
 Channel: ${channel || 'SMS'}
 Goal: ${goal}
-Target audience: ${audience}
+Target audience: ${targetAudience}
 Return ONLY the message, no explanation or quotes.`;
 
     const result = await model.generateContent(prompt);
