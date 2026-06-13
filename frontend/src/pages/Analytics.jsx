@@ -161,7 +161,7 @@ export default function Analytics() {
                     </td>
                     <td className="px-6 py-3.5 text-right text-gray-600">{(ch.sent || ch.total || 0).toLocaleString('en-IN')}</td>
                     <td className="px-6 py-3.5 text-right text-gray-600">{(ch.delivered || 0).toLocaleString('en-IN')}</td>
-                    <td className="px-6 py-3.5 text-right text-gray-600">{(ch.opened || 0).toLocaleString('en-IN')}</td>
+                    <td className="px-6 py-3.5 text-right text-gray-600">{(ch.opened || ch.read_count || 0).toLocaleString('en-IN')}</td>
                     <td className="px-6 py-3.5 text-right text-gray-600">{(ch.converted || 0).toLocaleString('en-IN')}</td>
                     <td className="px-6 py-3.5 text-right font-semibold text-gray-900">{formatCurrency(ch.revenue || 0)}</td>
                   </tr>

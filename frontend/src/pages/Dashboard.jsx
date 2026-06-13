@@ -172,7 +172,7 @@ export default function Dashboard() {
                 </tr>
               ) : campaigns.map((c) => {
                 const st = statusStyle(c.status);
-                const stats = c.stats || {};
+                const stats = c.stats || c;
                 return (
                   <tr key={c.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-3.5 font-medium text-gray-900">{c.name}</td>
